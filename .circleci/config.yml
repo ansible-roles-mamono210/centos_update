@@ -61,6 +61,8 @@ jobs:
         type: string
       instance-type:
         type: string
+      scenario-name:
+        type: string
     steps:
       - checkout:
           path: << parameters.checkout-path >>
@@ -96,10 +98,10 @@ jobs:
             ansible-galaxy collection install community.molecule
             ansible-galaxy install -r molecule/default/requirements.yml
       - run:
-          name: Test with molecule
+          name: Test with Molecule
           command: |
             cd << parameters.checkout-path >>
-            molecule test
+            molecule test --scenario-name << parameters.scenario-name >>
           environment:
             AMI_ID: "<< parameters.ami-id >>"
             ANSIBLE_FORCE_COLOR: '1'
@@ -163,8 +165,9 @@ workflows:
       - molecule:
           ami-id: 'ami-0b6da95c5acd0be7c'
           checkout-path: 'centos_update'
-          ec2-tag: 'circleci_ansible-roles_centos_update_centos7'
+          ec2-tag: 'circleci_ansible-roles_centos_update_centos7_default'
           instance-type: 't2.medium'
+          scenario-name: default
           context: aws-oidc
           requires:
             - ansible-lint
@@ -173,6 +176,16 @@ workflows:
           checkout-path: 'centos_update'
           ec2-tag: 'circleci_ansible-roles_centos_update_centos-stream8'
           instance-type: 't4g.medium'
+          scenario-name: default
+          context: aws-oidc
+          requires:
+            - ansible-lint
+      - molecule:
+          ami-id: 'ami-0b6da95c5acd0be7c'
+          checkout-path: 'centos_update'
+          ec2-tag: 'circleci_ansible-roles_centos_update_centos7_preserve_sshd'
+          instance-type: 't2.medium'
+          scenario-name: preserve_sshd_config
           context: aws-oidc
           requires:
             - ansible-lint
