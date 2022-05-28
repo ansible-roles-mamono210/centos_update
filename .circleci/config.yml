@@ -1,0 +1,178 @@
+---
+version: 2.1
+
+executors:
+  ansible-lint:
+    docker:
+      - image: ghcr.io/docker-hub-tm/circleci-executors/ansible-lint:latest
+    resource_class: small
+  molecule:
+    docker:
+      - image: ghcr.io/docker-hub-tm/circleci-executors_molecule/molecule:ec2
+    resource_class: medium
+  yamllint:
+    docker:
+      - image: ghcr.io/docker-hub-tm/circleci-executors/yamllint:latest
+    resource_class: small
+  trailing-whitespace:
+    docker:
+      - image: ghcr.io/docker-hub-tm/circleci-executors/trailing-whitespace:latest
+    resource_class: small
+
+orbs:
+  aws-cli: circleci/aws-cli@3.1.1
+
+jobs:
+  ansible-lint:
+    executor: ansible-lint
+    steps:
+      - checkout
+      - run:
+          name: Install the role
+          command: |
+            ansible-galaxy install git+${CIRCLE_REPOSITORY_URL},${CIRCLE_SHA1}
+      - run:
+          name: Install dependent roles
+          command: |
+            for d in `find molecule/* -maxdepth 1`; do
+              if [[ $d =~ molecule/.*/requirements.yml ]]; then
+                ansible-galaxy install -r $d
+              fi
+            done
+      - run:
+          name: Execulte Ansible-lint
+          command: ansible-lint
+      - run:
+          name: Show Ansible-lint version
+          command: |
+            pip list | grep ansible \
+            | GREP_COLORS='mt=01;34' egrep --color=always '[[:digit:]]' \
+            | GREP_COLORS='mt=01;34' egrep --color=always '\.' \
+            | GREP_COLORS='mt=01;33' egrep --color=always 'ansible.* '
+            ansible-lint --version
+  molecule:
+    executor: molecule
+    parameters:
+      ami-id:
+        type: string
+      checkout-path:
+        type: string
+      ec2-tag:
+        type: string
+      instance-type:
+        type: string
+    steps:
+      - checkout:
+          path: << parameters.checkout-path >>
+      - aws-cli/setup
+      - aws-cli/setup:
+          profile-name: default
+          role-arn: ${AWS_ROLE_ARN}
+          role-session-name: "<< parameters.ec2-tag >>"
+          session-duration: '1800'
+      - run:
+          name: Set timestamp for making sure Molecule would create unique AWS resources
+          command: |
+            cd << parameters.checkout-path >>
+
+            TIMESTAMP=$(date --date "9 hours" "+%Y%m%d_%H:%M:%S")
+            AUTHOR_EMAIL=$(git show -s --format='%ae' ${CIRCLE_SHA1})
+
+            echo "export CREATED_BY=${AUTHOR_EMAIL}" >> $BASH_ENV
+            echo "export KEYPAIR_NAME=<< parameters.ec2-tag >>_${TIMESTAMP}" >> $BASH_ENV
+            echo "export PLATFORM_NAME=<< parameters.ec2-tag >>_${TIMESTAMP}" >> $BASH_ENV
+            echo "export SECURITY_GROUP_NAME=<< parameters.ec2-tag >>_${TIMESTAMP}" >> $BASH_ENV
+            echo "export TAG_NAME=<< parameters.ec2-tag >>_${TIMESTAMP}" >> $BASH_ENV
+            source $BASH_ENV
+      - run:
+          name: Set EC2 instance type
+          command: |
+            echo "export INSTANCE_TYPE=<< parameters.instance-type >>" >> $BASH_ENV
+            source $BASH_ENV
+      - run:
+          name: Install required Ansible collections and roles
+          command: |
+            cd << parameters.checkout-path >>
+            ansible-galaxy collection install community.molecule
+            ansible-galaxy install -r molecule/default/requirements.yml
+      - run:
+          name: Test with molecule
+          command: |
+            cd << parameters.checkout-path >>
+            molecule test
+          environment:
+            AMI_ID: "<< parameters.ami-id >>"
+            ANSIBLE_FORCE_COLOR: '1'
+            # AWS_DEFAULT_REGION: sotred in CircleCI environment variables
+            # CREATED_BY: stored in CircleCI environment variables
+            # EC2_REGION: stored in CircleCI environment variables
+            # INSTANCE_TYPE: stored in CircleCI environment variables
+            # KEYPAIR_NAME: sotred in CircleCI environment variables
+            # PLATFORM_NAME: sotred in CircleCI environment variables
+            PROFILE_TASKS_SORT_ORDER: 'none'
+            PROFILE_TASKS_TASK_OUTPUT_LIMIT: '200'
+            PY_COLORS: '1'
+            # SECURITY_GROUP_NAME: sotred in CircleCI environment variables
+            # VPC_SUBNET_ID: sotred in CircleCI environment variables
+            TZ: 'Asia/Tokyo'
+          no_output_timeout: 30m
+      - run:
+          name: Show Ansible version
+          command: |
+            pip list | grep ansible \
+            | GREP_COLORS='mt=01;34' egrep --color=always '[[:digit:]]' \
+            | GREP_COLORS='mt=01;34' egrep --color=always '\.' \
+            | GREP_COLORS='mt=01;33' egrep --color=always 'ansible.* '
+            ansible --version
+      - run:
+          name: Show Molecule version
+          command: molecule --version
+  yamllint:
+    executor: yamllint
+    steps:
+      - checkout
+      - run:
+          name: Execute yamllint
+          command: yamllint *
+      - run:
+          name: Show yamllint version
+          command: |
+            yamllint --version \
+            | GREP_COLORS='mt=01;34' egrep --color=always '[[:digit:]]' \
+            | GREP_COLORS='mt=01;34' egrep --color=always '\.' \
+            | GREP_COLORS='mt=01;33' egrep --color=always 'yamllint.* '
+  trailing-whitespace:
+    executor: trailing-whitespace
+    steps:
+      - checkout
+      - run:
+          name: Execute trailing-whitespace
+          command: trailing-whitespace
+
+workflows:
+  version: 2.1
+  build:
+    jobs:
+      - trailing-whitespace
+      - yamllint:
+          requires:
+            - trailing-whitespace
+      - ansible-lint:
+          requires:
+            - yamllint
+      - molecule:
+          ami-id: 'ami-0b6da95c5acd0be7c'
+          checkout-path: 'centos_update'
+          ec2-tag: 'circleci_ansible-roles_centos_update_centos7'
+          instance-type: 't2.medium'
+          context: aws-oidc
+          requires:
+            - ansible-lint
+      - molecule:
+          ami-id: 'ami-04e5a0f50592bd309'
+          checkout-path: 'centos_update'
+          ec2-tag: 'circleci_ansible-roles_centos_update_centos-stream8'
+          instance-type: 't4g.medium'
+          context: aws-oidc
+          requires:
+            - ansible-lint
