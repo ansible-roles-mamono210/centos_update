@@ -12,7 +12,8 @@
   register: is_updated
 
 - name: Reboot the system
-  ansible.builtin.include: ../handlers/main.yml
+  ansible.builtin.include_tasks:
+    file: ../handlers/main.yml
   when: is_updated.changed
 
 - name: Replace sshd_config with previous one
