@@ -8,6 +8,5 @@ warn_list:
   - experimental
   - no-handler
   - risky-file-permissions
-  - schema
   - unnamed-task
   - yaml
