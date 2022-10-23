@@ -181,12 +181,3 @@ workflows:
           context: aws-oidc
           requires:
             - ansible-lint
-      - molecule:
-          ami-id: 'ami-0b6da95c5acd0be7c'
-          checkout-path: 'centos_update'
-          ec2-tag: 'circleci_ansible-roles_centos_update_centos7_preserve_sshd'
-          instance-type: 't2.medium'
-          scenario-name: preserve_sshd_config
-          context: aws-oidc
-          requires:
-            - ansible-lint
