@@ -36,6 +36,8 @@ jobs:
         type: string
       scenario-name:
         type: string
+      ssh-user:
+        type: string
     steps:
       - checkout:
           path: << parameters.checkout-path >>
@@ -89,6 +91,7 @@ jobs:
             PROFILE_TASKS_TASK_OUTPUT_LIMIT: '200'
             PY_COLORS: '1'
             # SECURITY_GROUP_NAME: sotred in CircleCI environment variables
+            SSH_USER: "<< parameters.ssh-user >>"
             # VPC_SUBNET_ID: sotred in CircleCI environment variables
             TZ: 'Asia/Tokyo'
           no_output_timeout: 35m
@@ -133,15 +136,17 @@ workflows:
           ec2-tag: 'circleci_ansible-roles_centos_update_centos7_default'
           instance-type: 't2.medium'
           scenario-name: default
+          ssh-user: centos
           context: aws-oidc
           requires:
             - ansible-lint
       - molecule:
-          ami-id: 'ami-04e5a0f50592bd309'
+          ami-id: 'ami-06f0acf3be02f9f64'
           checkout-path: 'centos_update'
           ec2-tag: 'circleci_ansible-roles_centos_update_centos-stream8'
           instance-type: 't4g.medium'
           scenario-name: default
+          ssh-user: centos
           context: aws-oidc
           requires:
             - ansible-lint
