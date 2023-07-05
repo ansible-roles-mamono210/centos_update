@@ -4,7 +4,7 @@ version: 2.1
 executors:
   molecule:
     docker:
-      - image: ghcr.io/docker-images-mamono210/circleci-executors_molecule/molecule:ec2
+      - image: ghcr.io/docker-images-mamono210/circleci-executors/molecule-ec2:latest
     resource_class: medium
   trailing-whitespace:
     docker:

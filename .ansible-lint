@@ -5,8 +5,4 @@ skip_list:
   - package-latest
 
 warn_list:
-  - experimental
   - no-handler
-  - risky-file-permissions
-  - unnamed-task
-  - yaml
