@@ -2,10 +2,6 @@
 version: 2.1
 
 executors:
-  molecule:
-    docker:
-      - image: ghcr.io/docker-images-mamono210/circleci-executors/molecule-ec2:latest
-    resource_class: medium
   trailing-whitespace:
     docker:
       - image: ghcr.io/docker-images-mamono210/circleci-executors/trailing-whitespace:latest
@@ -14,7 +10,7 @@ executors:
 orbs:
   ansible-lint: orbss/ansible-lint@0.0.3
   aws-cli: circleci/aws-cli@3.1.1
-  molecule-ec2: orbss/molecule-ec2@0.0.7
+  molecule-ec2: orbss/molecule-ec2@0.0.8
   yamllint: orbss/yamllint@0.0.4
 
 jobs:
@@ -25,7 +21,7 @@ jobs:
       - ansible-lint/execute:
           molecule-role-test: true
   molecule-ec2:
-    executor: molecule
+    executor: molecule-ec2/default
     parameters:
       ansible-user:
         type: string
