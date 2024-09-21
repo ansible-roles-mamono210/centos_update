@@ -9,6 +9,15 @@
       register: os_version
       changed_when: false
 
+    - name: Check stream release
+      ansible.builtin.command: rpm -qi centos-stream-release
+      register: stream_release
+      changed_when: false
+
     - name: Show OS version
       ansible.builtin.debug:
         var: os_version
+
+    - name: Show stream release
+      ansible.builtin.debug:
+        var: stream_release
