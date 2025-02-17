@@ -47,8 +47,11 @@ jobs:
           role-session-name: << parameters.aws-resource-name >>
           session-duration: '2100'
       - run:
-          name: Install Ansible roles
-          command: ansible-galaxy install -r molecule/<< parameters.molecule-scenario-name >>/requirements.yml
+          name: Copy Ansible role
+          command: |
+            mkdir -p $HOME/.ansible/roles
+            cd ../
+            cp -r centos_update $HOME/.ansible/roles/
       - molecule-ec2/execute:
           ansible-user: << parameters.ansible-user >>
           aws-ami-id: << parameters.aws-ami-id >>
