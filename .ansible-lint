@@ -1,6 +1,4 @@
 ---
-parseable: true
-
 skip_list:
   - package-latest
 
