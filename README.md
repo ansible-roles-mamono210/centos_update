@@ -3,7 +3,7 @@
 Role Description
 =========
 
-Update the all packaged for CentOS7/Stream8.
+Update the all packaged for CentOS Stream 9.
 
 Requirements
 ------------
